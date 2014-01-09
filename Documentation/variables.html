@@ -1,0 +1,44 @@
+<html>
+	<head>
+		<title>Paint Project Docs - Global Variables</title>
+	</head>
+
+	<body>
+		<h1 id="title">Paint Project Documentation</h1>
+		<div>
+			<h2>Global Variables</h2>
+			<h3>Mouse Functions</h3>
+			<p>tools - A dictionary that stores all the tool objects.</p>
+			<p>currentTool - A string that holds the key in <em>tools</em> for the current tool.</p>
+			<p>toolLoc/toolLoc2 - Tuples that stores the canvas mouse location used by the tools.</p>
+			<p>size - Current tool size (brush radius, line width, etc).</p>
+
+			<p>currentColour - Tuple that holds the current foreground colour value.</p>
+			<p>paletteHue - Tuple that holds the current hue to blit behind the saturation/luminosity grid.</p>
+			<p>colourLoc - Tuple that holds the current colour location on the Sat/Lum grid.</p>
+
+			<p>currentStamp - Integer representation of the current numpad key stamp.</p>
+
+			<p>lastClick - String that shows where the last mouseDown action occured.</p>
+			<p>displayInfo - Boolean that chooses whether to display the Properties or the Info pane.</p>
+
+			<p>newLayer - Default empty surface with dimensions of (1080, 660) and a transparency colourkey of (255, 0, 255).</p>
+			<p>layers - List of layers.</p>
+			<p>currentLayer - Active layer in <em>layers</em>.</p>
+
+			<p>states - A list storing all the states in history in the form (copy of layers, copy of currentLayer).</p>
+			<p>currentState - Active state in <em>states</em>.</p>
+
+			
+
+			<h3 id="tabletitle">Table of Contents</h3>
+			<ul id="contents">
+				<li><a href="index.html">Introduction</a></li>
+				<li><a href="imports.html">Modules</li></a>
+				<li><a href="functions.html">Functions</a></li>
+				<li><strong><a href="variables.html">Variables</a></strong></li>
+				<li><a href="classes.html">Classes</a></li>
+				<li><a href="loop.html">Main Loop</a></li>
+			</ol>
+	</body>
+</html>

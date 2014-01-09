@@ -1,0 +1,29 @@
+<html>
+	<head>
+		<title>Paint Project Docs - Global Functions</title>
+	</head>
+
+	<body>
+		<h1 id="title">Paint Project Documentation</h1>
+		<div>
+			<h2>Global Functions</h2>
+			<h3>Mouse Functions</h3>
+			<p>tm() - Returns the location of the mouse on the screen.</p>
+			<p>cm() - Returns the location of the mouse relative to the canvas (adjusted by +100/+100).</p>
+
+			<h3>Filter Functions</h3>
+			<p>gaussianBlur(<em>surf</em>) - Applies SciPy gaussian_filter to a numpy array and then returns a surface.</p>
+			<p>sobel(<em>surf</em>) - Applies SciPy sobel filter to a numpy array and then returns a surface.</p>
+			<p>invert(<em>surf</em>) - Inverts all the colour values by XORing them with 2**32 - 1 (36 1s in binary). Because each pixel is represented as a 32-bit colour value, this works by changing all 1s to 0s, and all 0s to 1s.</p>
+
+			<h3 id="tabletitle">Table of Contents</h3>
+			<ul id="contents">
+				<li><a href="index.html">Introduction</a></li>
+				<li><a href="imports.html">Modules</li></a>
+				<li><strong><a href="functions.html">Functions</a></strong></li>
+				<li><a href="variables.html">Variables</a></li>
+				<li><a href="classes.html">Classes</a></li>
+				<li><a href="loop.html">Main Loop</a></li>
+			</ol>
+	</body>
+</html>
