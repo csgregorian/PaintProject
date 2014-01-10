@@ -171,17 +171,17 @@ class eraserTool(Tool):
         if abs(cm()[0] - toolLoc[0]) > abs(cm()[1] - toolLoc[1]):
             if cm()[0] < toolLoc[0]:
                 for i in range(cm()[0], toolLoc[0]):
-                    draw.circle(layers[currentLayer], (255, 0, 255), (i, round(self.m*i + self.b)), size)
+                    draw.circle(layers[currentLayer], white, (i, round(self.m*i + self.b)), size)
             else:
                 for i in range(toolLoc[0], cm()[0]):
-                    draw.circle(layers[currentLayer], (255, 0, 255), (i, round(self.m*i + self.b)), size)
+                    draw.circle(layers[currentLayer], white, (i, round(self.m*i + self.b)), size)
         else:
             if cm()[1] < toolLoc[1]:
                 for i in range(cm()[1], toolLoc[1]):
-                    draw.circle(layers[currentLayer], (255, 0, 255), (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
+                    draw.circle(layers[currentLayer], white, (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
             else:
                 for i in range(toolLoc[1], cm()[1]):
-                    draw.circle(layers[currentLayer], (255, 0, 255), (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
+                    draw.circle(layers[currentLayer], white, (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
         toolLoc = cm()
 
 class dropperTool(Tool):
@@ -395,8 +395,8 @@ displayInfo = True
 # Standardizes new layer
 newLayer = Surface((1080, 660))
 # Colorkey makes #FF00FF transparent
-newLayer.set_colorkey((255, 0, 255))
-newLayer.fill((255, 0, 255))
+newLayer.set_colorkey((255, 255, 255))
+newLayer.fill((255, 255, 255))
 
 # List of layers
 layers = [newLayer.copy()]
@@ -547,8 +547,8 @@ while running:
                             layers = [x.copy() for x in states[currentState][0]]
                             currentLayer = states[currentState][1]
 
-                    elif ev.key == K_PLUS:
-                        layers[currentLayer] = transform.scale(layers[currentLayer], (540, 330))
+                    elif ev.key == K_EQUALS:
+                        layers[currentLayer] = transform.smoothscale(layers[currentLayer], (layers[currentLayer].get_width()//2, layers[currentLayer].get_height()//2))
 
                     elif ev.key == K_1:
                         if numsci:
