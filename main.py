@@ -513,14 +513,6 @@ while running:
                     tools["text"].text = tools["text"].text[:-1]
 
             else:
-                if numsci:
-                    if ev.key == K_1:
-                        layers[currentLayer] = gaussianBlur(layers[currentLayer])
-                    elif ev.key == K_2:
-                        layers[currentLayer] = sobel(layers[currentLayer])
-                    elif ev.key == K_3:
-                        invert(layers[currentLayer])
-
                 if mouse.get_pressed()[0] == False:
                     if ev.key == K_SPACE and len(layers) < 8:
                         layers.insert(currentLayer, newLayer.copy())
@@ -554,6 +546,19 @@ while running:
                             currentState += 1
                             layers = [x.copy() for x in states[currentState][0]]
                             currentLayer = states[currentState][1]
+
+                    elif ev.key == K_PLUS:
+                        layers[currentLayer] = transform.scale(layers[currentLayer], (540, 330))
+
+                    elif ev.key == K_1:
+                        if numsci:
+                            layers[currentLayer] = gaussianBlur(layers[currentLayer])
+                        else:
+                            layers[currentLayer] = transform.smoothscale(transform.scale(layers[currentLayer], (100, 50)), (1080, 660))
+                    elif ev.key == K_2 and numsci:
+                        layers[currentLayer] = sobel(layers[currentLayer])
+                    elif ev.key == K_3 and numsci:
+                        invert(layers[currentLayer])
 
 
 
