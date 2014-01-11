@@ -199,18 +199,28 @@ class fillTool(Tool):
     def canvasDown(self):
         self.points = set()
         pixarray = PixelArray(layers[currentLayer])
-        self.pixel(pixarray[cm()[0]][cm()[1]], cm()[0], cm()[1], pixarray)
-    def pixel(self, colour, x, y, pixarray):
-        spots = [(x, y)]
-        while len(spots) > 0:
+        self.fill(pixarray[cm()[0]][cm()[1]], cm()[0], cm()[1], pixarray)
+    def fill(self, colour, x, y, pixarray):
+        spots = set()
+        spots.add((x, y))
+        while len(spots) != 0:
             fx, fy = spots.pop()
             if 0 <= fx < 1080 and 0 <= fy < 660:
                 if pixarray[fx][fy] == colour:
-                    pixarray[fx][fy] = currentColour
-                    spots.append((fx+1, fy))
-                    spots.append((fx-1, fy))
-                    spots.append((fx, fy+1))
-                    spots.append((fx, fy-1))
+                    w = (fx, fy)
+                    e = (fx, fy)
+                    while 0 <= w[0]-1 < 1080 and 0 <= w[1] < 660 \
+                    and pixarray[w[0]-1][w[1]] == colour:
+                        w = (w[0]-1, w[1])
+                        pixarray[w[0]][w[1]] = currentColour
+                        spots.add((w[0], w[1]-1))
+                        spots.add((w[0], w[1]+1))
+                    while 0 <= e[0]+1 < 1080 and 0 <= e[1] < 660 \
+                    and pixarray[e[0]+1][e[1]] == colour:
+                        e = (e[0]+1, e[1])
+                        pixarray[e[0]][e[1]] = currentColour
+                        spots.add((e[0], e[1]-1))
+                        spots.add((e[0], e[1]+1))
         return pixarray
 
 class circleTool(Tool):
