@@ -263,7 +263,7 @@ class cropTool(Tool):
             layers[currentLayer] = cover.copy()
             toolLoc2 = cm()
             self.section = layers[currentLayer].copy()
-            draw.rect(layers[currentLayer], (255, 0, 255), (min(toolLoc[0], toolLoc2[0]), min(toolLoc[1], toolLoc2[1]),
+            draw.rect(layers[currentLayer], white, (min(toolLoc[0], toolLoc2[0]), min(toolLoc[1], toolLoc2[1]),
                 abs(toolLoc2[0]-toolLoc[0]), abs(toolLoc2[1]-toolLoc[1])))
         self.chosen = not self.chosen
 
