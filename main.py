@@ -414,6 +414,8 @@ screen.blit(image.load("resources/colorbox.png"), (1004, 760))
 draw.rect(screen, paletteHue, (1050, 793, 228, 228))
 screen.blit(image.load("resources/palette.png"), (1050, 793))
 
+cover = newLayer.copy()
+
 # Segoe UI System Font
 segoeui = font.SysFont("Segoe UI", 12)
 white = (255, 255, 255)
@@ -434,6 +436,7 @@ while running:
     for ev in event.get():
         if ev.type == QUIT:
             running = False
+            
         elif ev.type == MOUSEBUTTONDOWN:
             if ev.button == 1:
                 # checks if mouse clicked on canvas
@@ -547,14 +550,21 @@ while running:
                             layers = [x.copy() for x in states[currentState][0]]
                             currentLayer = states[currentState][1]
 
+                    elif ev.key == K_MINUS:
+                        scaled = transform.smoothscale(layers[currentLayer], (layers[currentLayer].get_width()//2, layers[currentLayer].get_height()//2))
+                        layers[currentLayer] = newLayer.copy()
+                        layers[currentLayer].blit(scaled, (0, 0))
+
                     elif ev.key == K_EQUALS:
-                        layers[currentLayer] = transform.smoothscale(layers[currentLayer], (layers[currentLayer].get_width()//2, layers[currentLayer].get_height()//2))
+                        scaled = transform.smoothscale(layers[currentLayer], (layers[currentLayer].get_width()*2, layers[currentLayer].get_height()*2))
+                        layers[currentLayer] = newLayer.copy()
+                        layers[currentLayer].blit(scaled, (0, 0))
 
                     elif ev.key == K_1:
                         if numsci:
                             layers[currentLayer] = gaussianBlur(layers[currentLayer])
                         else:
-                            layers[currentLayer] = transform.smoothscale(transform.scale(layers[currentLayer], (100, 50)), (1080, 660))
+                            layers[currentLayer] = transform.smoothscale(transform.smoothscale(layers[currentLayer], (270, 115)), (1080, 660))
                     elif ev.key == K_2 and numsci:
                         layers[currentLayer] = sobel(layers[currentLayer])
                     elif ev.key == K_3 and numsci:
@@ -586,7 +596,10 @@ while running:
             draw.circle(screen, (0, 0, 0), colourLoc, 5, 1)
 
     if currentTool == "text":
+        layers[currentLayer].blit(cover, (0, 0))
         layers[currentLayer].blit(font.SysFont("Segoe UI", tools["text"].size).render(tools["text"].text, True, tools["text"].colour), toolLoc)
+    else:
+        tools["text"].text = ""
 
     draw.rect(screen, (0, 0, 0), (10, 726, 28, 28))
     draw.rect(screen, (255, 255, 255), (11, 727, 26, 26))
