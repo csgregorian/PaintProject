@@ -649,16 +649,21 @@ while running:
     for i in range(len(layers)):
         draw.rect(layerbox, (80, 80, 80), (0, 90+50*(len(layers)-i-1), 100, 49))
         layerbox.blit(transform.scale(layers[i], (100, 51)), (0, 90+(50*(len(layers)-i-1))))
+
     draw.rect(layerbox, (255, 0, 0), (0, 90+50*(len(layers)-currentLayer-1), 100, 49), 2)
     screen.blit(layerbox, (1180, 100))
+    
 
-
-
-    screen.fill(white, (100, 100, 1080, 660))
-
-
-    for layer in layers:
-        screen.blit(layer, (100, 100))
+    
+    for i in range(len(layers)):
+        if i == 0:
+            layers[0].set_colorkey(None)
+        else:
+            layers[i].set_colorkey((255, 255, 255))
+            
+        screen.blit(layers[i], (100, 100))
+    
+    
 
     for keyz in tools:
         if tools[keyz].rect.collidepoint(tm()):
