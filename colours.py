@@ -22,3 +22,9 @@ def cmyk(color):
 
     # rescale to the range [0,cmyk_scale]
     return (c*cmyk_scale, m*cmyk_scale, y*cmyk_scale, k*cmyk_scale)
+
+def unmap(color):
+    r = color//16//16//16//16
+    g = color//16//16%256
+    b = color%256
+    return (r, g, b)

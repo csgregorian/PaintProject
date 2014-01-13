@@ -28,8 +28,9 @@ except:
 from pygame import *
 init()
 
-from colours import cmyk
+from colours import cmyk, unmap
 from stamps import stamps
+
 
 ## .......~MetaData~....... ##
 
@@ -37,7 +38,6 @@ __author__ = "Christopher Gregorian"
 __copyright__ = "Copyright 2013-2014, ICS-3U"
 __email__ = "csgregorian@gmail.com"
 __status__  = "Development"
-
 
 
 ## .......~Global Function Definitions~....... ##
@@ -200,6 +200,7 @@ class fillTool(Tool):
         self.points = set()
         pixarray = PixelArray(layers[currentLayer])
         self.pixel(pixarray[cm()[0]][cm()[1]], cm()[0], cm()[1], pixarray)
+
     def pixel(self, colour, x, y, pixarray):
         spots = [(x, y)]
         while len(spots) > 0:
@@ -211,7 +212,6 @@ class fillTool(Tool):
                     spots.append((fx-1, fy))
                     spots.append((fx, fy+1))
                     spots.append((fx, fy-1))
-        return pixarray
 
 class circleTool(Tool):
     """Draws a circle from the centre"""
@@ -311,8 +311,13 @@ def sobel(surf):
 
 def invert(surf):
     pixelarray = surfarray.pixels2d(surf)
-    pixelarray ^= 2**32 - 1
+    pixelarray ^= 2**24 - 1
 
+def grayscale(surf):
+    pixelarray = PixelArray(surf)
+    for x in range(len(pixelarray)):
+        for y in range(len(pixelarray[x])):
+            pixelarray[x][y] = sum(unmap(pixelarray[x][y]))//3 + sum(unmap(pixelarray[x][y]))//3*256 + sum(unmap(pixelarray[x][y]))//3*256**2
 
 
 ## .......~Global Var Definitions~....... ##
@@ -569,6 +574,8 @@ while running:
                         layers[currentLayer] = sobel(layers[currentLayer])
                     elif ev.key == K_3 and numsci:
                         invert(layers[currentLayer])
+                    elif ev.key == K_4:
+                        grayscale(layers[currentLayer])
 
 
 
