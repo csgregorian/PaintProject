@@ -394,7 +394,7 @@ displayInfo = True
 
 # Standardizes new layer
 newLayer = Surface((1080, 660))
-# Colorkey makes #FF00FF transparent
+# Colorkey makes #FFFFFF (white) transparent
 newLayer.set_colorkey((255, 255, 255))
 newLayer.fill((255, 255, 255))
 
