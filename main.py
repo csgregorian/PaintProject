@@ -14,6 +14,8 @@ from tkinter import filedialog as filedialog
 from random import randrange
 from time import sleep
 from math import hypot
+from colorsys import hls_to_rgb as hls
+
 import os
 # Sets display to open at top right corner
 os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
@@ -49,6 +51,14 @@ def tm():
 def cm():
     """Location of mouse on canvas"""
     return (mouse.get_pos()[0] - 100, mouse.get_pos()[1] - 100)
+
+def cc(x):
+    if 0 <= x <= 1:
+        return int(x*255)
+    elif x < 0:
+        return 0
+    elif x > 1:
+        return 1
 
 
 ## .......~Tool Classes~....... ##
@@ -127,6 +137,11 @@ class brushTool(Tool):
         global toolLoc
         toolLoc = cm()
     def canvasHold(self):
+        if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
+            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+        else:
+            color = currentColour
+            
         global layers
         global toolLoc
         self.m = (cm()[1] - toolLoc[1])/(cm()[0] - toolLoc[0] + (1 if cm()[0] - toolLoc[0] == 0 else 0))
@@ -134,17 +149,17 @@ class brushTool(Tool):
         if abs(cm()[0] - toolLoc[0]) > abs(cm()[1] - toolLoc[1]):
             if cm()[0] < toolLoc[0]:
                 for i in range(cm()[0], toolLoc[0]):
-                    draw.circle(layers[currentLayer], currentColour, (i, round(self.m*i + self.b)), size)
+                    draw.circle(layers[currentLayer], color, (i, round(self.m*i + self.b)), size)
             else:
                 for i in range(toolLoc[0], cm()[0]):
-                    draw.circle(layers[currentLayer], currentColour, (i, round(self.m*i + self.b)), size)
+                    draw.circle(layers[currentLayer], color, (i, round(self.m*i + self.b)), size)
         else:
             if cm()[1] < toolLoc[1]:
                 for i in range(cm()[1], toolLoc[1]):
-                    draw.circle(layers[currentLayer], currentColour, (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
+                    draw.circle(layers[currentLayer], color, (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
             else:
                 for i in range(toolLoc[1], cm()[1]):
-                    draw.circle(layers[currentLayer], currentColour, (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
+                    draw.circle(layers[currentLayer], color, (round((i-self.b)/self.m) if self.m != 0 else round(self.b), i), size)
         toolLoc = cm()
 
 class pencilTool(Tool):
@@ -270,14 +285,22 @@ class cropTool(Tool):
 class sprayTool(Tool):
     """Spray tool in a circle"""
     def canvasHold(self):
-        for i in range(round(6.18*size/3)):
-            while True:
-                x, y = (randrange(cm()[0]-size, cm()[0]+size),
-                    randrange(cm()[1]-size, cm()[1]+size))
-
-                if hypot(cm()[0]-x, cm()[1]-y) <= size:
-                    layers[currentLayer].set_at((x,y), currentColour)
-                    break
+        if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
+            for i in range(round(6.18*size/3)):
+                while True:
+                    x, y = (randrange(cm()[0]-size, cm()[0]+size),
+                        randrange(cm()[1]-size, cm()[1]+size))
+                    if hypot(cm()[0]-x, cm()[1]-y) <= size:
+                        layers[currentLayer].set_at((x,y), tuple(map(cc, hls(hue/255, 0.5, 1))))
+                        break
+        else:
+            for i in range(round(6.18*size/3)):
+                while True:
+                    x, y = (randrange(cm()[0]-size, cm()[0]+size),
+                        randrange(cm()[1]-size, cm()[1]+size))
+                    if hypot(cm()[0]-x, cm()[1]-y) <= size:
+                        layers[currentLayer].set_at((x,y), currentColour)
+                        break
 
 class textTool(Tool):
     text = ""
@@ -317,7 +340,10 @@ def grayscale(surf):
     pixelarray = PixelArray(surf)
     for x in range(len(pixelarray)):
         for y in range(len(pixelarray[x])):
-            pixelarray[x][y] = sum(unmap(pixelarray[x][y]))//3 + sum(unmap(pixelarray[x][y]))//3*256 + sum(unmap(pixelarray[x][y]))//3*256**2
+            pixelarray[x][y] = sum(unmap(pixelarray[x][y]))//3 + \
+            sum(unmap(pixelarray[x][y]))//3*256 + \
+            sum(unmap(pixelarray[x][y]))//3*256**2
+            
 
 
 ## .......~Global Var Definitions~....... ##
@@ -425,13 +451,20 @@ cover = newLayer.copy()
 segoeui = font.SysFont("Segoe UI", 12)
 white = (255, 255, 255)
 
+hue = 0
+
 
 ## .......~Main Loop~....... ##
 
 fpsTrack = time.Clock()
 running = True
 
+
+
 while running:
+
+    hue = (hue + 1) % 255
+    
     # Resets the screen
     draw.rect(screen, (80, 80, 80), (41, 29, 200, 800))
     screen.blit(images["title"], (0, 0))
