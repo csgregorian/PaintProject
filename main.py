@@ -490,6 +490,8 @@ while running:
                     for keyz in tools:
                         if tools[keyz].rect.collidepoint(tm()):
                             currentTool = keyz
+                            if keyz == "text":
+                                cover = layers[currentLayer].copy()
 
                 elif rects["palette"].collidepoint(tm()):
                     lastclick = "palette"
