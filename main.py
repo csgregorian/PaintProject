@@ -85,23 +85,27 @@ class lineTool(Tool):
     def canvasHold(self):
         global layers
         layers[currentLayer] = cover.copy()
+        if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
+            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+        else:
+            color = currentColour
         self.m = (cm()[1] - toolLoc[1])/(cm()[0] - toolLoc[0] + (1 if cm()[0] - toolLoc[0] == 0 else 0))
         self.b = cm()[1] - (self.m * cm()[0])
         if abs(cm()[0] - toolLoc[0]) > abs(cm()[1] - toolLoc[1]):
             if cm()[0] < toolLoc[0]:
                 for i in range(cm()[0], toolLoc[0]):
-                    draw.circle(layers[currentLayer], currentColour, (i, round(self.m*i + self.b)), size)
+                    draw.circle(layers[currentLayer], color, (i, round(self.m*i + self.b)), size)
             else:
                 for i in range(toolLoc[0], cm()[0]):
-                    draw.circle(layers[currentLayer], currentColour, (i, round(self.m*i + self.b)), size)
+                    draw.circle(layers[currentLayer], color, (i, round(self.m*i + self.b)), size)
         else:
             if cm()[1] < toolLoc[1]:
                 for i in range(cm()[1], toolLoc[1]):
-                    draw.circle(layers[currentLayer], currentColour, (round((i-self.b)/self.m)
+                    draw.circle(layers[currentLayer], color, (round((i-self.b)/self.m)
                         if self.m != 0 else round(self.b), i), size)
             else:
                 for i in range(toolLoc[1], cm()[1]):
-                    draw.circle(layers[currentLayer], currentColour, (round((i-self.b)/self.m)
+                    draw.circle(layers[currentLayer], color, (round((i-self.b)/self.m)
                         if self.m != 0 else round(self.b), i), size)
 
 class rectTool(Tool):
@@ -118,6 +122,11 @@ class rectTool(Tool):
 
         self.filled = 0
 
+        if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
+            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+        else:
+            color = currentColour
+
         if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
             self.filled = 1
         else:
@@ -125,11 +134,11 @@ class rectTool(Tool):
 
         if key.get_pressed()[K_LSHIFT] or key.get_pressed()[K_RSHIFT]:
             self.size = min(abs(w), abs(h))
-            draw.rect(layers[currentLayer], currentColour, (toolLoc[0], toolLoc[1], #  MAGIC
+            draw.rect(layers[currentLayer], color, (toolLoc[0], toolLoc[1], #  MAGIC
             self.size if w > 1 else -self.size,                                     #  DO NOT
             self.size if h > 1 else -self.size), 0 < self.filled < abs(self.size))  #  TOUCH
         else:
-            draw.rect(layers[currentLayer], currentColour, (toolLoc[0], toolLoc[1], w, h), 0 < self.filled < abs(max(w, h)))
+            draw.rect(layers[currentLayer], color, (toolLoc[0], toolLoc[1], w, h), 0 < self.filled < abs(max(w, h)))
 
 class brushTool(Tool):
     """Draws continuous circles at a given size"""
@@ -137,7 +146,7 @@ class brushTool(Tool):
         global toolLoc
         toolLoc = cm()
     def canvasHold(self):
-        if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
+        if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
             color = tuple(map(cc, hls(hue/255, 0.5, 1)))
         else:
             color = currentColour
@@ -170,7 +179,11 @@ class pencilTool(Tool):
     def canvasHold(self):
         global layers
         global toolLoc
-        draw.line(layers[currentLayer], currentColour, cm(), toolLoc, 1)
+        if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
+            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+        else:
+            color = currentColour
+        draw.line(layers[currentLayer], color, cm(), toolLoc, 1)
         toolLoc = cm()
 
 class eraserTool(Tool):
@@ -239,14 +252,18 @@ class circleTool(Tool):
         self.w = abs(cm()[0] - toolLoc[0])
         self.h = abs(cm()[1] - toolLoc[1])
         self.filled = False
+        if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
+            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+        else:
+            color = currentColour
         if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
             self.filled = True
         else:
             self.filled = False
         if key.get_pressed()[K_LSHIFT] or key.get_pressed()[K_RSHIFT]:
-            draw.circle(layers[currentLayer], currentColour, toolLoc, round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])), 0 < self.filled < round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])))
+            draw.circle(layers[currentLayer], color, toolLoc, round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])), 0 < self.filled < round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])))
         else:
-            draw.ellipse(layers[currentLayer], currentColour, (min(toolLoc[0], cm()[0]), min(toolLoc[1], cm()[1]), self.w, self.h), 0 < self.filled < min(self.w, self.h))
+            draw.ellipse(layers[currentLayer], color, (min(toolLoc[0], cm()[0]), min(toolLoc[1], cm()[1]), self.w, self.h), 0 < self.filled < min(self.w, self.h))
 
 
 class cropTool(Tool):
@@ -319,8 +336,6 @@ class stampTool(Tool):
         layers[currentLayer] = cover.copy()
         layers[currentLayer].blit(transform.scale(stamps[currentStamp].convert_alpha(), (size*4, size*4)), (cm()[0] - size*2, cm()[1]-size*2))
 
-
-
 ## .......~Filter Functions~....... ##
 def gaussianBlur(surf):
     numpyarray = surfarray.array3d(surf)
@@ -333,8 +348,16 @@ def sobel(surf):
     return surfarray.make_surface(result)
 
 def invert(surf):
-    pixelarray = surfarray.pixels2d(surf)
-    pixelarray ^= 2**24 - 1
+    if numsci:
+        pixelarray = surfarray.pixels2d(surf)
+        pixelarray ^= 2**24 - 1
+    else:
+        global layers
+        for x in range(0, 1080):
+            for y in range(0, 660):
+                pix = layers[currentLayer].get_at((x, y))
+                layers[currentLayer].set_at((x, y), tuple((255-x for x in pix)))
+
 
 def grayscale(surf):
     pixelarray = PixelArray(surf)
@@ -452,6 +475,9 @@ segoeui = font.SysFont("Segoe UI", 12)
 white = (255, 255, 255)
 
 hue = 0
+timer1 = 0
+
+infobox = images["info"].copy()
 
 
 ## .......~Main Loop~....... ##
@@ -607,7 +633,7 @@ while running:
                             layers[currentLayer] = transform.smoothscale(transform.smoothscale(layers[currentLayer], (270, 115)), (1080, 660))
                     elif ev.key == K_2 and numsci:
                         layers[currentLayer] = sobel(layers[currentLayer])
-                    elif ev.key == K_3 and numsci:
+                    elif ev.key == K_3:
                         invert(layers[currentLayer])
                     elif ev.key == K_4:
                         grayscale(layers[currentLayer])
@@ -651,27 +677,30 @@ while running:
     draw.rect(screen, (255, 255, 255), (3, 719, 26, 26))
     draw.rect(screen, currentColour, (4, 720, 24, 24))
 
+    
 
-    infobox = images["info"].copy()
-    layerbox = images["layerbox"].copy()
+    timer1 = (timer1 + 1) % 10
+
 
     if displayInfo:
-        infobox.blit(segoeui.render(str(currentColour[0]), True, white), (70, 35))
-        infobox.blit(segoeui.render(str(currentColour[1]), True, white), (70, 50))
-        infobox.blit(segoeui.render(str(currentColour[2]), True, white), (70, 65))
+        if timer1 == 0:
+            infobox = images["info"].copy()
+            infobox.blit(segoeui.render(str(currentColour[0]), True, white), (70, 35))
+            infobox.blit(segoeui.render(str(currentColour[1]), True, white), (70, 50))
+            infobox.blit(segoeui.render(str(currentColour[2]), True, white), (70, 65))
 
-        infobox.blit(segoeui.render(str(cm()[0]), True, white), (70, 125))
-        infobox.blit(segoeui.render(str(cm()[1]), True, white), (70, 140))
+            infobox.blit(segoeui.render(str(cm()[0]), True, white), (70, 125))
+            infobox.blit(segoeui.render(str(cm()[1]), True, white), (70, 140))
 
-        infobox.blit(segoeui.render(str(round(cmyk(currentColour)[0], 1)), True, white), (180, 35))
-        infobox.blit(segoeui.render(str(round(cmyk(currentColour)[1], 1)), True, white), (180, 50))
-        infobox.blit(segoeui.render(str(round(cmyk(currentColour)[2], 1)), True, white), (180, 65))
-        infobox.blit(segoeui.render(str(round(cmyk(currentColour)[3], 1)), True, white), (180, 80))
+            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[0], 1)), True, white), (180, 35))
+            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[1], 1)), True, white), (180, 50))
+            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[2], 1)), True, white), (180, 65))
+            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[3], 1)), True, white), (180, 80))
 
-        infobox.blit(segoeui.render(str(size), True, white), (180, 125))
-        infobox.blit(segoeui.render(str(size), True, white), (180, 140))
+            infobox.blit(segoeui.render(str(size), True, white), (180, 125))
+            infobox.blit(segoeui.render(str(size), True, white), (180, 140))
 
-        infobox.blit(segoeui.render("Current FPS: " + str(1000//fpsTrack.get_time()), True, white), (32, 170))
+            infobox.blit(segoeui.render("Current FPS: " + str(1000//fpsTrack.get_time()), True, white), (32, 170))
         screen.blit(infobox, (39, 805))
     else:
         screen.blit(images["properties"], (39, 805))
@@ -687,6 +716,9 @@ while running:
         screen.blit(images["hFile"], rects["save"])
     else:
         screen.blit(images["File"], rects["save"])
+
+
+    layerbox = images["layerbox"].copy()
 
     for i in range(len(layers)):
         draw.rect(layerbox, (80, 80, 80), (0, 90+50*(len(layers)-i-1), 100, 49))
