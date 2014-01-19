@@ -22,7 +22,7 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
 
 try:
     import numpy
-    from scipy import ndimage, signal
+    from scipy import ndimage
     numsci = True
 except:
     numsci = False
@@ -59,6 +59,7 @@ def cc(x):
         return 0
     elif x > 1:
         return 1
+
 
 
 ## .......~Tool Classes~....... ##
@@ -150,7 +151,7 @@ class brushTool(Tool):
             color = tuple(map(cc, hls(hue/255, 0.5, 1)))
         else:
             color = currentColour
-            
+
         global layers
         global toolLoc
         self.m = (cm()[1] - toolLoc[1])/(cm()[0] - toolLoc[0] + (1 if cm()[0] - toolLoc[0] == 0 else 0))
@@ -302,8 +303,8 @@ class cropTool(Tool):
 class sprayTool(Tool):
     """Spray tool in a circle"""
     def canvasHold(self):
-        if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
-            for i in range(round(6.18*size/3)):
+        if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
+            for i in range(round(2*size)):
                 while True:
                     x, y = (randrange(cm()[0]-size, cm()[0]+size),
                         randrange(cm()[1]-size, cm()[1]+size))
@@ -338,9 +339,12 @@ class stampTool(Tool):
 
 ## .......~Filter Functions~....... ##
 def gaussianBlur(surf):
-    numpyarray = surfarray.array3d(surf)
-    result = ndimage.filters.gaussian_filter(numpyarray, (8, 8, 0))
-    return surfarray.make_surface(result)
+    if numsci:
+        numpyarray = surfarray.array3d(surf)
+        result = ndimage.filters.gaussian_filter(numpyarray, (8, 8, 0))
+        return surfarray.make_surface(result)
+    else:
+        return transform.smoothscale(transform.smoothscale(surf, (270, 115)), (1080, 660))
 
 def sobel(surf):
     numpyarray = surfarray.array3d(surf)
@@ -350,23 +354,47 @@ def sobel(surf):
 def invert(surf):
     if numsci:
         pixelarray = surfarray.pixels2d(surf)
-        pixelarray ^= 2**24 - 1
+        pixelarray ^= 2**32 - 1
+        return surfarray.make_surface(pixelarray)
     else:
-        global layers
         for x in range(0, 1080):
             for y in range(0, 660):
-                pix = layers[currentLayer].get_at((x, y))
-                layers[currentLayer].set_at((x, y), tuple((255-x for x in pix)))
+                pix = surf.get_at((x, y))[:-1]
+                surf.set_at((x, y), tuple((255-x for x in pix)))
+        return surf
 
 
 def grayscale(surf):
-    pixelarray = PixelArray(surf)
-    for x in range(len(pixelarray)):
-        for y in range(len(pixelarray[x])):
-            pixelarray[x][y] = sum(unmap(pixelarray[x][y]))//3 + \
-            sum(unmap(pixelarray[x][y]))//3*256 + \
-            sum(unmap(pixelarray[x][y]))//3*256**2
-            
+    for x in range(0, 1080):
+        for y in range(0, 660):
+            pix = sum(surf.get_at((x, y))[:-1])//3
+            surf.set_at((x, y), (pix, pix, pix))
+    return surf
+
+def tint(surf):
+    for x in range(0, 1080):
+        for y in range(0, 660):
+            pix = surf.get_at((x, y))
+            r = round(pix[0] * (currentColour[0]/255))
+            g = round(pix[1] * (currentColour[1]/255))
+            b = round(pix[2] * (currentColour[2]/255))
+            surf.set_at((x, y), (r, g, b))
+    return surf
+
+def grow(surf):
+    scaled = transform.smoothscale(surf, (surf.get_width()*2, surf.get_height()*2))
+    surf = newLayer.copy()
+    surf.blit(scaled, (-540, -330))
+    return surf
+
+def shrink(surf):
+    scaled = transform.smoothscale(surf, (surf.get_width()//2, surf.get_height()//2))
+    surf = newLayer.copy()
+    surf.blit(scaled, (270, 165))
+    return surf
+
+
+filterList = [gaussianBlur, sobel, invert, grayscale, tint, grow, shrink]
 
 
 ## .......~Global Var Definitions~....... ##
@@ -404,7 +432,8 @@ rects = {
     "exit" : Rect(1232, 0, 40, 18),
     "save" : screen.blit(image.load("resources/File.png"), (39, 4)),
     "properties" : Rect(79, 818, 71, 16),
-    "info" : Rect(40, 818, 39, 16)
+    "info" : Rect(40, 818, 39, 16),
+    "filter": screen.blit(image.load("resources/filter.png"), (292, 805))
 }
 
 # Stores all images
@@ -424,6 +453,13 @@ images = {
     "toolbar"  : image.load("resources/pstool.png")
 }
 
+filterRects = [Rect(295, 839, 117, 180),
+Rect(413, 839, 117, 180),
+Rect(530, 839, 117, 180),
+Rect(647, 839, 117, 180),
+Rect(764, 839, 117, 180),
+Rect(881, 839, 117, 90), Rect(881, 929, 117, 90)]
+
 
 
 
@@ -437,6 +473,7 @@ size = 4
 currentColour = (255, 0, 0)
 paletteHue = (255, 0, 0)
 colourLoc = (1277, 793)
+hue = 0
 
 # Stamp image (from stamp module)
 currentStamp = 265
@@ -467,40 +504,40 @@ screen.fill((80, 80, 80))
 screen.blit(image.load("resources/colorbox.png"), (1004, 760))
 draw.rect(screen, paletteHue, (1050, 793, 228, 228))
 screen.blit(image.load("resources/palette.png"), (1050, 793))
+screen.blit(image.load("resources/filter.png"), (292, 805))
 
+# Cover (copy of current layer)
 cover = newLayer.copy()
 
 # Segoe UI System Font
 segoeui = font.SysFont("Segoe UI", 12)
 white = (255, 255, 255)
 
-hue = 0
+# Main loop values
+running = True
 timer1 = 0
+fpsTrack = time.Clock()
 
+# Creates infobox
 infobox = images["info"].copy()
 
 
 ## .......~Main Loop~....... ##
-
-fpsTrack = time.Clock()
-running = True
-
-
-
 while running:
 
+    # Cycles hue for rainbow colour
     hue = (hue + 1) % 255
-    
+
     # Resets the screen
     draw.rect(screen, (80, 80, 80), (41, 29, 200, 800))
     screen.blit(images["title"], (0, 0))
     screen.blit(images["toolbar"], (0, 28))
 
-
+    # Event Loop
     for ev in event.get():
         if ev.type == QUIT:
             running = False
-            
+
         elif ev.type == MOUSEBUTTONDOWN:
             if ev.button == 1:
                 # checks if mouse clicked on canvas
@@ -513,14 +550,16 @@ while running:
 
                 elif rects["toolbar"].collidepoint(tm()):
                     lastclick = "tool"
-                    for keyz in tools:
-                        if tools[keyz].rect.collidepoint(tm()):
-                            currentTool = keyz
-                            if keyz == "text":
+                    for keys in tools:
+                        if tools[keys].rect.collidepoint(tm()):
+                            currentTool = keys
+                            if keys == "text":
+                                # Enables backspacing by blitting a cover
                                 cover = layers[currentLayer].copy()
 
                 elif rects["palette"].collidepoint(tm()):
                     lastclick = "palette"
+
                 elif rects["hue"].collidepoint(tm()):
                     lastclick = "hue"
 
@@ -534,21 +573,28 @@ while running:
                     savedFile.fill((255, 255, 255))
                     for i in layers:
                         savedFile.blit(i, (0, 0))
+                    # Opens tk dialog to pick location, name
                     loadname = filedialog.asksaveasfilename()
                     if loadname:
                         image.save(savedFile, loadname + ".png")
-                        print(loadname)
 
                 elif rects["properties"].collidepoint(tm()):
                     displayInfo = False
                 elif rects["info"].collidepoint(tm()):
                     displayInfo = True
 
+                elif Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects) != -1:
+                    lastclick = "filters"
+                    tile = Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects)
+                    layers[currentLayer] = filterList[tile](layers[currentLayer])
+
                 else:
                     lastclick = "screen"
 
+            # Right click
             elif ev.button == 3:
                 if rects["save"].collidepoint(tm()):
+                    # Opens tk dialog to pick an image to load
                     filename = filedialog.askopenfilename()
                     if filename:
                         layers = [newLayer.copy()]
@@ -557,9 +603,11 @@ while running:
                         currentState = 0
                         layers[currentLayer].blit(image.load(filename), (0, 0))
 
+            # Scroll Up
             elif ev.button == 4:
                 size += 2
 
+            # Scroll Down
             elif ev.button == 5:
                 size -= 2 if size > 1 else 0
 
@@ -616,31 +664,6 @@ while running:
                             layers = [x.copy() for x in states[currentState][0]]
                             currentLayer = states[currentState][1]
 
-                    elif ev.key == K_MINUS:
-                        scaled = transform.smoothscale(layers[currentLayer], (layers[currentLayer].get_width()//2, layers[currentLayer].get_height()//2))
-                        layers[currentLayer] = newLayer.copy()
-                        layers[currentLayer].blit(scaled, (0, 0))
-
-                    elif ev.key == K_EQUALS:
-                        scaled = transform.smoothscale(layers[currentLayer], (layers[currentLayer].get_width()*2, layers[currentLayer].get_height()*2))
-                        layers[currentLayer] = newLayer.copy()
-                        layers[currentLayer].blit(scaled, (0, 0))
-
-                    elif ev.key == K_1:
-                        if numsci:
-                            layers[currentLayer] = gaussianBlur(layers[currentLayer])
-                        else:
-                            layers[currentLayer] = transform.smoothscale(transform.smoothscale(layers[currentLayer], (270, 115)), (1080, 660))
-                    elif ev.key == K_2 and numsci:
-                        layers[currentLayer] = sobel(layers[currentLayer])
-                    elif ev.key == K_3:
-                        invert(layers[currentLayer])
-                    elif ev.key == K_4:
-                        grayscale(layers[currentLayer])
-
-
-
-
     if mouse.get_pressed()[0]:
         # canvas check
         if rects["canvas"].collidepoint(tm()) and lastclick == "canvas":
@@ -676,10 +699,6 @@ while running:
     draw.rect(screen, (0, 0, 0), (2, 718, 28, 28))
     draw.rect(screen, (255, 255, 255), (3, 719, 26, 26))
     draw.rect(screen, currentColour, (4, 720, 24, 24))
-
-    
-
-    timer1 = (timer1 + 1) % 10
 
 
     if displayInfo:
@@ -726,18 +745,18 @@ while running:
 
     draw.rect(layerbox, (255, 0, 0), (0, 90+50*(len(layers)-currentLayer-1), 100, 49), 2)
     screen.blit(layerbox, (1180, 100))
-    
 
-    
+
+
     for i in range(len(layers)):
         if i == 0:
             layers[0].set_colorkey(None)
         else:
             layers[i].set_colorkey((255, 255, 255))
-            
+
         screen.blit(layers[i], (100, 100))
-    
-    
+
+
 
     for keyz in tools:
         if tools[keyz].rect.collidepoint(tm()):
