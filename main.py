@@ -347,9 +347,12 @@ def gaussianBlur(surf):
         return transform.smoothscale(transform.smoothscale(surf, (270, 115)), (1080, 660))
 
 def sobel(surf):
-    numpyarray = surfarray.array3d(surf)
-    result = ndimage.filters.sobel(numpyarray)
-    return surfarray.make_surface(result)
+    if numsci:
+        numpyarray = surfarray.array3d(surf)
+        result = ndimage.filters.sobel(numpyarray)
+        return surfarray.make_surface(result)
+    else:
+        return surf
 
 def invert(surf):
     if numsci:
