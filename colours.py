@@ -23,8 +23,11 @@ def cmyk(color):
     # rescale to the range [0,cmyk_scale]
     return (c*cmyk_scale, m*cmyk_scale, y*cmyk_scale, k*cmyk_scale)
 
-def unmap(color):
-    r = color//16//16//16//16
-    g = color//16//16%256
-    b = color%256
-    return (r, g, b)
+def cc(x):
+    """Converts 0...1 colour profiles to 0...255"""
+    if 0 <= x <= 1:
+        return int(x*255)
+    elif x < 0:
+        return 0
+    elif x > 1:
+        return 1

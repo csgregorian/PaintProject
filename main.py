@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 '''
 Photoshop CS7
 A simple photoshop clone written in Python 3.2.3.
@@ -30,7 +31,7 @@ except:
 from pygame import *
 init()
 
-from colours import cmyk, unmap
+from colours import cmyk, cc
 from stamps import stamps
 
 
@@ -39,6 +40,7 @@ from stamps import stamps
 __author__ = "Christopher Gregorian"
 __copyright__ = "Copyright 2013-2014, ICS-3U"
 __email__ = "csgregorian@gmail.com"
+__website__ = "github.com/csgregorian"
 __status__  = "Development"
 
 
@@ -52,23 +54,17 @@ def cm():
     """Location of mouse on canvas"""
     return (mouse.get_pos()[0] - 100, mouse.get_pos()[1] - 100)
 
-def cc(x):
-    if 0 <= x <= 1:
-        return int(x*255)
-    elif x < 0:
-        return 0
-    elif x > 1:
-        return 1
-
-
 
 ## .......~Tool Classes~....... ##
 class Tool:
     """Default tool class.
-    Every tool must have a canvasDown/Hold/Up method to be called at the appropriate event."""
+    Every tool must have a canvasDown/Hold/Up method
+    to be called at the appropriate event."""
 
     def __init__(self, Image, hImage, pImage, loc, size):
+        # Normal, hover, and pressed icon images.
         self.images = [image.load(Image), image.load(hImage), image.load(pImage)]
+        # Location of icon on toolbar
         self.loc = loc
         self.rect = Rect(loc[0], loc[1], size[0], size[1])
     def canvasDown(self):
