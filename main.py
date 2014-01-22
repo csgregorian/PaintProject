@@ -212,11 +212,13 @@ class eraserTool(Tool):
 class dropperTool(Tool):
     """Picks colour from canvas"""
     def canvasHold(self):
-        global colourLoc
-        global currentColour
+        global lColour
+        global rColour
         global layers
-        colourLoc = tm()
-        currentColour = screen.get_at(colourLoc)
+        if mouse.get_pressed()[0]:
+            lColour = screen.get_at(tm())
+        else:
+            rColour = screen.get_at(tm())
         layers[currentLayer] = cover.copy()
 
 class fillTool(Tool):
@@ -333,6 +335,43 @@ class stampTool(Tool):
         layers[currentLayer] = cover.copy()
         layers[currentLayer].blit(transform.scale(stamps[currentStamp].convert_alpha(), (size*4, size*4)), (cm()[0] - size*2, cm()[1]-size*2))
 
+class gradTool(Tool):
+    """Fills an area bounded by different colours"""
+    def canvasDown(self):
+        self.points = set()
+        pixarray = PixelArray(layers[currentLayer])
+        self.pixel(pixarray[cm()[0]][cm()[1]], cm()[0], cm()[1], pixarray)
+
+    def pixel(self, colour, x, y, pixarray):
+        if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
+            spots = [(x, y)]
+            while len(spots) > 0:
+                fx, fy = spots.pop()
+                if 0 <= fx < 1080 and 0 <= fy < 660:
+                    if pixarray[fx][fy] == colour:
+                        r = round(lColour[0] * (fy/660) + rColour[0] * ((660-fy)/660))
+                        g = round(lColour[1] * (fy/660) + rColour[1] * ((660-fy)/660))
+                        b = round(lColour[2] * (fy/660) + rColour[2] * ((660-fy)/660))
+                        pixarray[fx][fy] = (r, g, b)
+                        spots.append((fx+1, fy))
+                        spots.append((fx-1, fy))
+                        spots.append((fx, fy+1))
+                        spots.append((fx, fy-1))
+        else:
+            spots = [(x, y)]
+            while len(spots) > 0:
+                fx, fy = spots.pop()
+                if 0 <= fx < 1080 and 0 <= fy < 660:
+                    if pixarray[fx][fy] == colour:
+                        r = round(lColour[0] * (fx/1080) + rColour[0] * ((1080-fx)/1080))
+                        g = round(lColour[1] * (fx/1080) + rColour[1] * ((1080-fx)/1080))
+                        b = round(lColour[2] * (fx/1080) + rColour[2] * ((1080-fx)/1080))
+                        pixarray[fx][fy] = (r, g, b)
+                        spots.append((fx+1, fy))
+                        spots.append((fx-1, fy))
+                        spots.append((fx, fy+1))
+                        spots.append((fx, fy-1))
+
 ## .......~Filter Functions~....... ##
 def gaussianBlur(surf):
     if numsci:
@@ -351,16 +390,14 @@ def sobel(surf):
         return surf
 
 def invert(surf):
-    if numsci:
-        pixelarray = surfarray.pixels2d(surf)
-        pixelarray ^= 2**32 - 1
-        return surfarray.make_surface(pixelarray)
-    else:
-        for x in range(0, 1080):
-            for y in range(0, 660):
-                pix = surf.get_at((x, y))[:-1]
-                surf.set_at((x, y), tuple((255-x for x in pix)))
-        return surf
+    #if numsci:
+        #pixelarray = surfarray.pixels2d(layers[currentLayer])
+        #pixelarray ^= 2**24 - 1
+    for x in range(0, 1080):
+        for y in range(0, 660):
+            pix = surf.get_at((x, y))[:-1]
+            surf.set_at((x, y), tuple((255-x for x in pix)))
+    return surf
 
 
 def grayscale(surf):
@@ -417,7 +454,8 @@ tools = {
         "marquee": cropTool   ("Tools/Crop.png",    "Tools/hCrop.png",    "Tools/pCrop.png",    (3, 276), (32, 24)),
         "spray"  : sprayTool  ("Tools/Spray.png",   "Tools/hSpray.png",   "Tools/pSpray.png",   (3, 304), (32, 24)),
         "text"   : textTool   ("Tools/Text.png",    "Tools/hText.png",    "Tools/pText.png",    (3, 332), (32, 24)),
-        "stamp"  : stampTool  ("Tools/Stamp.png",   "Tools/hStamp.png",   "Tools/pStamp.png",   (3, 360), (32, 24))
+        "stamp"  : stampTool  ("Tools/Stamp.png",   "Tools/hStamp.png",   "Tools/pStamp.png",   (3, 360), (32, 24)),
+        "grad"  : gradTool  ("Tools/Stamp.png",   "Tools/hStamp.png",   "Tools/pStamp.png",   (3, 388), (32, 24))
 }
 
 # Stores all rects
@@ -457,7 +495,8 @@ Rect(413, 839, 117, 180),
 Rect(530, 839, 117, 180),
 Rect(647, 839, 117, 180),
 Rect(764, 839, 117, 180),
-Rect(881, 839, 117, 90), Rect(881, 929, 117, 90)]
+Rect(881, 839, 117, 90),
+Rect(881, 929, 117, 90)]
 
 
 
@@ -469,9 +508,13 @@ toolLoc2 = (0, 0)
 size = 4
 
 # Colour information
-currentColour = (255, 0, 0)
-paletteHue = (255, 0, 0)
-colourLoc = (1277, 793)
+lColour = (255, 0, 0)
+rColour = (0, 0, 0)
+currentColour = lColour
+lHue = (255, 0, 0)
+rHue = (255, 0, 0)
+lLoc = (1277, 793)
+rLoc = (1400, 1000)
 hue = 0
 
 # Stamp image (from stamp module)
@@ -490,7 +533,7 @@ newLayer.fill((255, 255, 255))
 
 # List of layers
 layers = [newLayer.copy()]
-# Active layer in the list: a pointer would be nice here
+# Active layer in the list: an iterator would be nice here
 currentLayer = 0
 
 # Action History
@@ -501,7 +544,7 @@ currentState = 0
 # Creates screen
 screen.fill((80, 80, 80))
 screen.blit(image.load("resources/colorbox.png"), (1004, 760))
-draw.rect(screen, paletteHue, (1050, 793, 228, 228))
+draw.rect(screen, lHue, (1050, 793, 228, 228))
 screen.blit(image.load("resources/palette.png"), (1050, 793))
 screen.blit(image.load("resources/filter.png"), (292, 805))
 
@@ -542,6 +585,7 @@ while running:
                 # checks if mouse clicked on canvas
                 if rects["canvas"].collidepoint(tm()):
                     lastclick = "canvas"
+                    currentColour = lColour
                     # creates a cover
                     cover = layers[currentLayer].copy()
                     # runs current tool's click method
@@ -549,10 +593,10 @@ while running:
 
                 elif rects["toolbar"].collidepoint(tm()):
                     lastclick = "tool"
-                    for keys in tools:
-                        if tools[keys].rect.collidepoint(tm()):
-                            currentTool = keys
-                            if keys == "text":
+                    for keyz in tools:
+                        if tools[keyz].rect.collidepoint(tm()):
+                            currentTool = keyz
+                            if keyz == "text":
                                 # Enables backspacing by blitting a cover
                                 cover = layers[currentLayer].copy()
 
@@ -590,9 +634,20 @@ while running:
                 else:
                     lastclick = "screen"
 
-            # Right click
             elif ev.button == 3:
-                if rects["save"].collidepoint(tm()):
+                if rects["canvas"].collidepoint(tm()):
+                    lastclick = "canvas"
+                    currentColour = rColour
+                    cover = layers[currentLayer].copy()
+                    tools[currentTool].canvasDown()
+
+                elif rects["palette"].collidepoint(tm()):
+                    lastclick = "palette"
+
+                elif rects["hue"].collidepoint(tm()):
+                    lastclick = "hue"
+            
+                elif rects["save"].collidepoint(tm()):
                     # Opens tk dialog to pick an image to load
                     filename = filedialog.askopenfilename()
                     if filename:
@@ -663,27 +718,38 @@ while running:
                             layers = [x.copy() for x in states[currentState][0]]
                             currentLayer = states[currentState][1]
 
-    if mouse.get_pressed()[0]:
+    if mouse.get_pressed()[0] or mouse.get_pressed()[2]:
         # canvas check
         if rects["canvas"].collidepoint(tm()) and lastclick == "canvas":
             # runs current tool's hold method
+            currentColour = lColour if mouse.get_pressed()[0] else rColour
             tools[currentTool].canvasHold()
 
         elif rects["hue"].collidepoint(tm()) and lastclick == "hue":
             screen.blit(images["colorbox"], (1004, 760))
-            draw.rect(screen, paletteHue, rects["palette"])
+            draw.rect(screen, lHue if mouse.get_pressed()[0] else rHue, rects["palette"])
             screen.blit(images["palette"], rects["palette"])
-            paletteHue = screen.get_at(tm())
-            currentColour = screen.get_at(colourLoc)
-            draw.circle(screen, (0, 0, 0), colourLoc, 5, 1)
+            if mouse.get_pressed()[0]:
+                lHue = screen.get_at(tm())
+                lColour = screen.get_at(lLoc)
+                draw.circle(screen, (0, 0, 0), lLoc, 5, 1)
+            else:
+                rHue = screen.get_at(tm())
+                rColour = screen.get_at(rLoc)
+                draw.circle(screen, (0, 0, 0), rLoc, 5, 1)
 
         elif rects["palette"].collidepoint(tm()) and lastclick == "palette":
             screen.blit(images["colorbox"], (1004, 760))
-            colourLoc = tm()
-            draw.rect(screen, paletteHue, rects["palette"])
+            draw.rect(screen, lHue if mouse.get_pressed()[0] else rHue, rects["palette"])
             screen.blit(images["palette"], rects["palette"])
-            currentColour = screen.get_at(colourLoc)
-            draw.circle(screen, (0, 0, 0), colourLoc, 5, 1)
+            if mouse.get_pressed()[0]:
+                lLoc = tm()
+                lColour = screen.get_at(lLoc)
+                draw.circle(screen, (0, 0, 0), lLoc, 5, 1)
+            else:
+                rLoc = tm()
+                rColour = screen.get_at(rLoc)
+                draw.circle(screen, (0, 0, 0), rLoc, 5, 1)
 
     if currentTool == "text":
         layers[currentLayer].blit(cover, (0, 0))
@@ -693,27 +759,27 @@ while running:
 
     draw.rect(screen, (0, 0, 0), (10, 726, 28, 28))
     draw.rect(screen, (255, 255, 255), (11, 727, 26, 26))
-    draw.rect(screen, (0, 0, 0), (12, 728, 24, 24))
+    draw.rect(screen, rColour, (12, 728, 24, 24))
 
     draw.rect(screen, (0, 0, 0), (2, 718, 28, 28))
     draw.rect(screen, (255, 255, 255), (3, 719, 26, 26))
-    draw.rect(screen, currentColour, (4, 720, 24, 24))
+    draw.rect(screen, lColour, (4, 720, 24, 24))
 
 
     if displayInfo:
         if timer1 == 0:
             infobox = images["info"].copy()
-            infobox.blit(segoeui.render(str(currentColour[0]), True, white), (70, 35))
-            infobox.blit(segoeui.render(str(currentColour[1]), True, white), (70, 50))
-            infobox.blit(segoeui.render(str(currentColour[2]), True, white), (70, 65))
+            infobox.blit(segoeui.render(str(lColour[0]), True, white), (70, 35))
+            infobox.blit(segoeui.render(str(lColour[1]), True, white), (70, 50))
+            infobox.blit(segoeui.render(str(lColour[2]), True, white), (70, 65))
 
             infobox.blit(segoeui.render(str(cm()[0]), True, white), (70, 125))
             infobox.blit(segoeui.render(str(cm()[1]), True, white), (70, 140))
 
-            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[0], 1)), True, white), (180, 35))
-            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[1], 1)), True, white), (180, 50))
-            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[2], 1)), True, white), (180, 65))
-            infobox.blit(segoeui.render(str(round(cmyk(currentColour)[3], 1)), True, white), (180, 80))
+            infobox.blit(segoeui.render(str(round(cmyk(lColour)[0], 1)), True, white), (180, 35))
+            infobox.blit(segoeui.render(str(round(cmyk(lColour)[1], 1)), True, white), (180, 50))
+            infobox.blit(segoeui.render(str(round(cmyk(lColour)[2], 1)), True, white), (180, 65))
+            infobox.blit(segoeui.render(str(round(cmyk(lColour)[3], 1)), True, white), (180, 80))
 
             infobox.blit(segoeui.render(str(size), True, white), (180, 125))
             infobox.blit(segoeui.render(str(size), True, white), (180, 140))
