@@ -357,6 +357,23 @@ class gradTool(Tool):
                         spots.append((fx-1, fy))
                         spots.append((fx, fy+1))
                         spots.append((fx, fy-1))
+
+        elif key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
+            spots = [(x, y)]
+            while len(spots) > 0:
+                fx, fy = spots.pop()
+                if 0 <= fx < 1080 and 0 <= fy < 660:
+                    if pixarray[fx][fy] == colour:
+                        distance = hypot(fx-cm()[0], fy-cm()[1])
+                        r = round(lColour[0] * (distance/1200) + rColour[0] * ((1200-distance)/1200))
+                        g = round(lColour[1] * (distance/1200) + rColour[1] * ((1200-distance)/1200))
+                        b = round(lColour[2] * (distance/1200) + rColour[2] * ((1200-distance)/1200))
+                        pixarray[fx][fy] = (r, g, b)
+                        spots.append((fx+1, fy))
+                        spots.append((fx-1, fy))
+                        spots.append((fx, fy+1))
+                        spots.append((fx, fy-1))
+
         else:
             spots = [(x, y)]
             while len(spots) > 0:
@@ -371,6 +388,8 @@ class gradTool(Tool):
                         spots.append((fx-1, fy))
                         spots.append((fx, fy+1))
                         spots.append((fx, fy-1))
+
+        del(spots)
 
 ## .......~Filter Functions~....... ##
 def gaussianBlur(surf):
@@ -514,7 +533,7 @@ currentColour = lColour
 lHue = (255, 0, 0)
 rHue = (255, 0, 0)
 lLoc = (1277, 793)
-rLoc = (1400, 1000)
+rLoc = (1277, 793)
 hue = 0
 
 # Stamp image (from stamp module)
