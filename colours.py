@@ -31,3 +31,12 @@ def cc(x):
         return 0
     elif x > 1:
         return 1
+
+def unmap(x):
+    r = x//(16**4)
+    g = x//(16**2)%(16**2)
+    b = x%(16**2)%(16**2)
+    return (r, g, b)
+
+def remap(x):
+    return x[0]*(16**4) + x[1]*(16**2) + x[2]

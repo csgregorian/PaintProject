@@ -260,9 +260,13 @@ class circleTool(Tool):
         else:
             self.filled = False
         if key.get_pressed()[K_LSHIFT] or key.get_pressed()[K_RSHIFT]:
-            draw.circle(layers[currentLayer], color, toolLoc, round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])), 0 < self.filled < round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])))
+            draw.circle(layers[currentLayer], color, toolLoc,
+                round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])),
+                0 < self.filled < round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])))
         else:
-            draw.ellipse(layers[currentLayer], color, (min(toolLoc[0], cm()[0]), min(toolLoc[1], cm()[1]), self.w, self.h), 0 < self.filled < min(self.w, self.h))
+            draw.ellipse(layers[currentLayer], color, (min(toolLoc[0], cm()[0]),
+                min(toolLoc[1], cm()[1]), self.w, self.h),
+                0 < self.filled < min(self.w, self.h))
 
 
 class cropTool(Tool):
@@ -365,9 +369,9 @@ class gradTool(Tool):
                 if 0 <= fx < 1080 and 0 <= fy < 660:
                     if pixarray[fx][fy] == colour:
                         distance = hypot(fx-cm()[0], fy-cm()[1])
-                        r = round(lColour[0] * (distance/1200) + rColour[0] * ((1200-distance)/1200))
-                        g = round(lColour[1] * (distance/1200) + rColour[1] * ((1200-distance)/1200))
-                        b = round(lColour[2] * (distance/1200) + rColour[2] * ((1200-distance)/1200))
+                        r = round(lColour[0] * (distance/1265) + rColour[0] * ((1265-distance)/1265))
+                        g = round(lColour[1] * (distance/1265) + rColour[1] * ((1265-distance)/1265))
+                        b = round(lColour[2] * (distance/1265) + rColour[2] * ((1265-distance)/1265))
                         pixarray[fx][fy] = (r, g, b)
                         spots.append((fx+1, fy))
                         spots.append((fx-1, fy))
@@ -474,7 +478,7 @@ tools = {
         "spray"  : sprayTool  ("Tools/Spray.png",   "Tools/hSpray.png",   "Tools/pSpray.png",   (3, 304), (32, 24)),
         "text"   : textTool   ("Tools/Text.png",    "Tools/hText.png",    "Tools/pText.png",    (3, 332), (32, 24)),
         "stamp"  : stampTool  ("Tools/Stamp.png",   "Tools/hStamp.png",   "Tools/pStamp.png",   (3, 360), (32, 24)),
-        "grad"  : gradTool  ("Tools/Stamp.png",   "Tools/hStamp.png",   "Tools/pStamp.png",   (3, 388), (32, 24))
+        "grad"  : gradTool  ("Tools/Grad.png",   "Tools/hGrad.png",   "Tools/pGrad.png",   (3, 388), (32, 24))
 }
 
 # Stores all rects
@@ -685,7 +689,7 @@ while running:
                 size -= 2 if size > 1 else 0
 
         elif ev.type == MOUSEBUTTONUP:
-            if lastclick == "canvas" and ev.button == 1:
+            if lastclick == "canvas" and 1 <= ev.button <= 2:
                 del states[currentState + 1::]
                 states.append(([x.copy() for x in layers], currentLayer))
                 currentState = len(states) - 1
