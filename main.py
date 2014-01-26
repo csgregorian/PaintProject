@@ -15,7 +15,8 @@ from tkinter import filedialog as filedialog
 from random import randrange
 from time import sleep
 from math import hypot
-from colorsys import hls_to_rgb as hls
+from colorsys import hls_to_rgb as rgb
+from colorsys import rgb_to_hls as hls
 
 import os
 # Sets display to open at top right corner
@@ -31,7 +32,7 @@ except:
 from pygame import *
 init()
 
-from colours import cmyk, cc
+from colours import *
 from stamps import stamps
 
 
@@ -83,7 +84,7 @@ class lineTool(Tool):
         global layers
         layers[currentLayer] = cover.copy()
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
-            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+            color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
             color = currentColour
         self.m = (cm()[1] - toolLoc[1])/(cm()[0] - toolLoc[0] + (1 if cm()[0] - toolLoc[0] == 0 else 0))
@@ -120,7 +121,7 @@ class rectTool(Tool):
         self.filled = 0
 
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
-            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+            color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
             color = currentColour
 
@@ -144,7 +145,7 @@ class brushTool(Tool):
         toolLoc = cm()
     def canvasHold(self):
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
-            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+            color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
             color = currentColour
 
@@ -177,7 +178,7 @@ class pencilTool(Tool):
         global layers
         global toolLoc
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
-            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+            color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
             color = currentColour
         draw.line(layers[currentLayer], color, cm(), toolLoc, 1)
@@ -252,7 +253,7 @@ class circleTool(Tool):
         self.h = abs(cm()[1] - toolLoc[1])
         self.filled = False
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
-            color = tuple(map(cc, hls(hue/255, 0.5, 1)))
+            color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
             color = currentColour
         if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
@@ -311,7 +312,7 @@ class sprayTool(Tool):
                     x, y = (randrange(cm()[0]-size, cm()[0]+size),
                         randrange(cm()[1]-size, cm()[1]+size))
                     if hypot(cm()[0]-x, cm()[1]-y) <= size:
-                        layers[currentLayer].set_at((x,y), tuple(map(cc, hls(hue/255, 0.5, 1))))
+                        layers[currentLayer].set_at((x,y), tuple(map(cc, rgb(hue/255, 0.5, 1))))
                         break
         else:
             for i in range(round(6.18*size/3)):
@@ -396,64 +397,86 @@ class gradTool(Tool):
         del(spots)
 
 ## .......~Filter Functions~....... ##
-def gaussianBlur(surf):
+def gaussianBlur():
     if numsci:
-        numpyarray = surfarray.array3d(surf)
-        result = ndimage.filters.gaussian_filter(numpyarray, (8, 8, 0))
-        return surfarray.make_surface(result)
+        numpyarray = surfarray.array3d(layers[currentLayer])
+        result = ndimage.filters.gaussian_filter(numpyarray, (4, 4, 0))
+        layers[currentLayer] = surfarray.make_surface(result)
     else:
-        return transform.smoothscale(transform.smoothscale(surf, (270, 115)), (1080, 660))
+        layers[currentLayer] = transform.smoothscale(transform.smoothscale(layers[currentLayer], (270, 115)), (1080, 660))
 
-def sobel(surf):
+def pixelate():
+    layers[currentLayer] = transform.scale(transform.scale(layers[currentLayer], (108, 66)), (1080, 660))
+
+def sobel():
     if numsci:
-        numpyarray = surfarray.array3d(surf)
+        numpyarray = surfarray.array3d(layers[currentLayer])
         result = ndimage.filters.sobel(numpyarray)
-        return surfarray.make_surface(result)
-    else:
-        return surf
+        layers[currentLayer] = surfarray.make_surface(result)
 
-def invert(surf):
+def saturate():
+    for x in range(1080):
+        for y in range(660):
+            pix = layers[currentLayer].get_at((x, y))
+            hsva = pix.hsva
+            pix.hsva = (hsva[0], 100, hsva[2], hsva[3])
+            layers[currentLayer].set_at((x, y), pix)
+
+def invert():
     #if numsci:
         #pixelarray = surfarray.pixels2d(layers[currentLayer])
         #pixelarray ^= 2**24 - 1
     for x in range(0, 1080):
         for y in range(0, 660):
-            pix = surf.get_at((x, y))[:-1]
-            surf.set_at((x, y), tuple((255-x for x in pix)))
-    return surf
+            pix = layers[currentLayer].get_at((x, y))[:-1]
+            layers[currentLayer].set_at((x, y), tuple((255-x for x in pix)))
 
+def flip():
+    layers[currentLayer] = transform.flip(layers[currentLayer], False, True)
 
-def grayscale(surf):
+def grayscale():
     for x in range(0, 1080):
         for y in range(0, 660):
-            pix = sum(surf.get_at((x, y))[:-1])//3
-            surf.set_at((x, y), (pix, pix, pix))
-    return surf
+            pix = sum(layers[currentLayer].get_at((x, y))[:-1])//3
+            layers[currentLayer].set_at((x, y), (pix, pix, pix))
 
-def tint(surf):
+def tint():
     for x in range(0, 1080):
         for y in range(0, 660):
-            pix = surf.get_at((x, y))
+            pix = layers[currentLayer].get_at((x, y))
             r = round(pix[0] * (currentColour[0]/255))
             g = round(pix[1] * (currentColour[1]/255))
             b = round(pix[2] * (currentColour[2]/255))
-            surf.set_at((x, y), (r, g, b))
-    return surf
+            layers[currentLayer].set_at((x, y), (r, g, b))
 
-def grow(surf):
-    scaled = transform.smoothscale(surf, (surf.get_width()*2, surf.get_height()*2))
+def noise():
+    for x in range(0, 1080):
+        for y in range(0, 660):
+            layers[currentLayer].set_at((x, y),
+            (randrange(0, 255), randrange(0, 255), randrange(0, 255)))
+
+def fill():
+    layers[currentLayer].fill(currentColour)
+
+
+def grow():
+    scaled = transform.smoothscale(layers[currentLayer], (2160, 1320))
     surf = newLayer.copy()
     surf.blit(scaled, (-540, -330))
-    return surf
+    layers[currentLayer] = surf
 
-def shrink(surf):
-    scaled = transform.smoothscale(surf, (surf.get_width()//2, surf.get_height()//2))
+def shrink():
+    scaled = transform.smoothscale(layers[currentLayer], (540, 330))
     surf = newLayer.copy()
     surf.blit(scaled, (270, 165))
-    return surf
+    layers[currentLayer] = surf
 
 
-filterList = [gaussianBlur, sobel, invert, grayscale, tint, grow, shrink]
+
+
+filterList = [gaussianBlur, pixelate, sobel, saturate,
+invert, flip, grayscale, tint,
+noise, fill, grow, shrink]
 
 
 ## .......~Global Var Definitions~....... ##
@@ -513,13 +536,18 @@ images = {
     "toolbar"  : image.load("resources/pstool.png")
 }
 
-filterRects = [Rect(295, 839, 117, 180),
-Rect(413, 839, 117, 180),
-Rect(530, 839, 117, 180),
-Rect(647, 839, 117, 180),
-Rect(764, 839, 117, 180),
-Rect(881, 839, 117, 90),
-Rect(881, 929, 117, 90)]
+filterRects = [Rect(295, 839, 117, 90),
+Rect(295, 929, 117, 90),
+Rect(412, 839, 117, 90),
+Rect(412, 929, 117, 90),
+Rect(529, 839, 117, 90),
+Rect(529, 929, 117, 90),
+Rect(646, 839, 117, 90),
+Rect(646, 929, 117, 90),
+Rect(763, 839, 117, 90),
+Rect(763, 929, 117, 90),
+Rect(880, 839, 117, 90),
+Rect(880, 929, 117, 90)]
 
 
 
@@ -652,7 +680,7 @@ while running:
                 elif Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects) != -1:
                     lastclick = "filters"
                     tile = Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects)
-                    layers[currentLayer] = filterList[tile](layers[currentLayer])
+                    filterList[tile]()
 
                 else:
                     lastclick = "screen"
@@ -740,6 +768,13 @@ while running:
                             currentState += 1
                             layers = [x.copy() for x in states[currentState][0]]
                             currentLayer = states[currentState][1]
+
+                    elif ev.key == K_x:
+                        lColour, rColour = rColour, lColour
+                    elif ev.key == K_d:
+                        lColour = (0, 0, 0)
+                        rColour = (255, 255, 255)
+                    
 
     if mouse.get_pressed()[0] or mouse.get_pressed()[2]:
         # canvas check
