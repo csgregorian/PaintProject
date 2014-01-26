@@ -444,9 +444,9 @@ def tint():
     for x in range(0, 1080):
         for y in range(0, 660):
             pix = layers[currentLayer].get_at((x, y))
-            r = round(pix[0] * (currentColour[0]/255))
-            g = round(pix[1] * (currentColour[1]/255))
-            b = round(pix[2] * (currentColour[2]/255))
+            r = round(pix[0] * (lColour[0]/255))
+            g = round(pix[1] * (lColour[1]/255))
+            b = round(pix[2] * (lColour[2]/255))
             layers[currentLayer].set_at((x, y), (r, g, b))
 
 def noise():
@@ -456,7 +456,7 @@ def noise():
             (randrange(0, 255), randrange(0, 255), randrange(0, 255)))
 
 def fill():
-    layers[currentLayer].fill(currentColour)
+    layers[currentLayer].fill(lColour)
 
 
 def grow():
@@ -681,6 +681,9 @@ while running:
                     lastclick = "filters"
                     tile = Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects)
                     filterList[tile]()
+                    del states[currentState + 1::]
+                    states.append(([x.copy() for x in layers], currentLayer))
+                    currentState = len(states) - 1
 
                 else:
                     lastclick = "screen"
@@ -717,7 +720,7 @@ while running:
                 size -= 2 if size > 1 else 0
 
         elif ev.type == MOUSEBUTTONUP:
-            if lastclick == "canvas" and 1 <= ev.button <= 2:
+            if lastclick == "canvas" and (ev.button == 1 or ev.button == 3):
                 del states[currentState + 1::]
                 states.append(([x.copy() for x in layers], currentLayer))
                 currentState = len(states) - 1
