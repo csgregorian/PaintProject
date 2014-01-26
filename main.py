@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Photoshop CS7
+Pyshop CS7
 A simple photoshop clone written in Python 3.2.3.
 Includes tools, colour selection, colorkey layers, file loading and saving,
 program information, and filters.
@@ -22,6 +22,7 @@ import os
 # Sets display to open at top right corner
 os.environ['SDL_VIDEO_WINDOW_POS'] = "0,0"
 
+# Changes filters based on module availability.
 try:
     import numpy
     from scipy import ndimage
@@ -217,9 +218,9 @@ class dropperTool(Tool):
         global rColour
         global layers
         if mouse.get_pressed()[0]:
-            lColour = screen.get_at(tm())
+            lColour = layers[currentLayer].get_at(tm())
         else:
-            rColour = screen.get_at(tm())
+            rColour = layers[currentLayer].get_at(tm())
         layers[currentLayer] = cover.copy()
 
 class fillTool(Tool):
@@ -441,13 +442,17 @@ def grayscale():
             layers[currentLayer].set_at((x, y), (pix, pix, pix))
 
 def tint():
-    for x in range(0, 1080):
-        for y in range(0, 660):
-            pix = layers[currentLayer].get_at((x, y))
-            r = round(pix[0] * (lColour[0]/255))
-            g = round(pix[1] * (lColour[1]/255))
-            b = round(pix[2] * (lColour[2]/255))
-            layers[currentLayer].set_at((x, y), (r, g, b))
+    # for x in range(0, 1080):
+    #    for y in range(0, 660):
+    #        pix = layers[currentLayer].get_at((x, y))
+    #        r = round(pix[0] * (lColour[0]/255))
+    #        g = round(pix[1] * (lColour[1]/255))
+    #        b = round(pix[2] * (lColour[2]/255))
+    #        layers[currentLayer].set_at((x, y), (r, g, b))
+    tintlayer = newLayer.copy()
+    tintlayer.fill(lColour)
+    tintlayer.set_alpha(50)
+    layers[currentLayer].blit(tintlayer, (0, 0))
 
 def noise():
     for x in range(0, 1080):
@@ -776,7 +781,7 @@ while running:
                         lColour, rColour = rColour, lColour
                     elif ev.key == K_d:
                         lColour = (0, 0, 0)
-                        rColour = (255, 255, 255)
+                        rColour = (254, 254, 254)
                     
 
     if mouse.get_pressed()[0] or mouse.get_pressed()[2]:
@@ -866,10 +871,10 @@ while running:
     layerbox = images["layerbox"].copy()
 
     for i in range(len(layers)):
-        draw.rect(layerbox, (80, 80, 80), (0, 90+50*(len(layers)-i-1), 100, 49))
+        draw.rect(layerbox, (80, 80, 80), (0, 90+50*(len(layers)-i-1), 100, 50))
         layerbox.blit(transform.scale(layers[i], (100, 51)), (0, 90+(50*(len(layers)-i-1))))
 
-    draw.rect(layerbox, (255, 0, 0), (0, 90+50*(len(layers)-currentLayer-1), 100, 49), 2)
+    draw.rect(layerbox, (255, 0, 0), (0, 90+50*(len(layers)-currentLayer-1), 99, 50), 2)
     screen.blit(layerbox, (1180, 100))
 
 
