@@ -16,7 +16,6 @@ from random import randrange
 from time import sleep
 from math import hypot
 from colorsys import hls_to_rgb as rgb
-from colorsys import rgb_to_hls as hls
 
 import os
 # Sets display to open at top right corner
@@ -84,12 +83,15 @@ class lineTool(Tool):
     def canvasHold(self):
         global layers
         layers[currentLayer] = cover.copy()
+        # Rainbow colour selector
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
             color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
             color = currentColour
+        # Slope and y intercept, accounting for undefined slope.
         self.m = (cm()[1] - toolLoc[1])/(cm()[0] - toolLoc[0] + (1 if cm()[0] - toolLoc[0] == 0 else 0))
         self.b = cm()[1] - (self.m * cm()[0])
+        # Conditions to choose which axis/order to draw
         if abs(cm()[0] - toolLoc[0]) > abs(cm()[1] - toolLoc[1]):
             if cm()[0] < toolLoc[0]:
                 for i in range(cm()[0], toolLoc[0]):
@@ -115,11 +117,9 @@ class rectTool(Tool):
     def canvasHold(self):
         global layers
         layers[currentLayer] = cover.copy()
-
+        # Size of rectangle
         w = cm()[0] - toolLoc[0]
         h = cm()[1] - toolLoc[1]
-
-        self.filled = 0
 
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
             color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
@@ -133,10 +133,10 @@ class rectTool(Tool):
 
         if key.get_pressed()[K_LSHIFT] or key.get_pressed()[K_RSHIFT]:
             self.size = min(abs(w), abs(h))
-            draw.rect(layers[currentLayer], color, (toolLoc[0], toolLoc[1], #  MAGIC
-            self.size if w > 1 else -self.size,                                     #  DO NOT
-            self.size if h > 1 else -self.size), 0 < self.filled < abs(self.size))  #  TOUCH
-        else:
+            draw.rect(layers[currentLayer], color, (toolLoc[0], toolLoc[1],
+            self.size if w > 1 else -self.size,
+            self.size if h > 1 else -self.size), 0 < self.filled < abs(self.size))
+        else: # Fancy boolean math that returns T/F, which is then converted to int
             draw.rect(layers[currentLayer], color, (toolLoc[0], toolLoc[1], w, h), 0 < self.filled < abs(max(w, h)))
 
 class brushTool(Tool):
@@ -152,6 +152,7 @@ class brushTool(Tool):
 
         global layers
         global toolLoc
+        # Same algorithm as the line tool
         self.m = (cm()[1] - toolLoc[1])/(cm()[0] - toolLoc[0] + (1 if cm()[0] - toolLoc[0] == 0 else 0))
         self.b = cm()[1] - (self.m * cm()[0])
         if abs(cm()[0] - toolLoc[0]) > abs(cm()[1] - toolLoc[1]):
@@ -231,16 +232,19 @@ class fillTool(Tool):
         self.pixel(pixarray[cm()[0]][cm()[1]], cm()[0], cm()[1], pixarray)
 
     def pixel(self, colour, x, y, pixarray):
-        spots = [(x, y)]
+        # Basic flood fill: line fill is faster, but leaves spaces
+        spots = set()
+        spots.add((x, y))
         while len(spots) > 0:
             fx, fy = spots.pop()
             if 0 <= fx < 1080 and 0 <= fy < 660:
+                # Adds colours in all four directions
                 if pixarray[fx][fy] == colour:
                     pixarray[fx][fy] = currentColour
-                    spots.append((fx+1, fy))
-                    spots.append((fx-1, fy))
-                    spots.append((fx, fy+1))
-                    spots.append((fx, fy-1))
+                    spots.add((fx+1, fy))
+                    spots.add((fx-1, fy))
+                    spots.add((fx, fy+1))
+                    spots.add((fx, fy-1))
 
 class circleTool(Tool):
     """Draws a circle from the centre"""
@@ -252,7 +256,6 @@ class circleTool(Tool):
         layers[currentLayer] = cover.copy()
         self.w = abs(cm()[0] - toolLoc[0])
         self.h = abs(cm()[1] - toolLoc[1])
-        self.filled = False
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
             color = tuple(map(cc, rgb(hue/255, 0.5, 1)))
         else:
@@ -262,17 +265,18 @@ class circleTool(Tool):
         else:
             self.filled = False
         if key.get_pressed()[K_LSHIFT] or key.get_pressed()[K_RSHIFT]:
+            # Distance formula from cursor
             draw.circle(layers[currentLayer], color, toolLoc,
                 round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])),
                 0 < self.filled < round(hypot(cm()[0]-toolLoc[0], cm()[1]-toolLoc[1])))
-        else:
+        else: #In retrospect, normalize would probably have made this quite nice
             draw.ellipse(layers[currentLayer], color, (min(toolLoc[0], cm()[0]),
                 min(toolLoc[1], cm()[1]), self.w, self.h),
                 0 < self.filled < min(self.w, self.h))
 
 
 class cropTool(Tool):
-    """Chooses an area and moves it to a different location"""
+    """Selects an area and moves it to a different location"""
     chosen = False
     def canvasDown(self):
         global toolLoc
@@ -285,10 +289,12 @@ class cropTool(Tool):
     def canvasHold(self):
         global layers
         if not self.chosen:
+            # Simple rectangular selection
             self.section = layers[currentLayer].copy()
             layers[currentLayer] = cover.copy()
             draw.rect(layers[currentLayer], (0, 0, 0), (toolLoc[0], toolLoc[1], cm()[0]-toolLoc[0], cm()[1]-toolLoc[1]), 1)
         else:
+            # Stamps the selection
             layers[currentLayer] = cover.copy()
             layers[currentLayer].blit(self.section, cm(), (min(toolLoc[0], toolLoc2[0]), min(toolLoc[1], toolLoc2[1]),
                 abs(toolLoc2[0]-toolLoc[0]), abs(toolLoc2[1]-toolLoc[1])))
@@ -300,13 +306,16 @@ class cropTool(Tool):
             layers[currentLayer] = cover.copy()
             toolLoc2 = cm()
             self.section = layers[currentLayer].copy()
+            # Draws selection rectangle
             draw.rect(layers[currentLayer], white, (min(toolLoc[0], toolLoc2[0]), min(toolLoc[1], toolLoc2[1]),
                 abs(toolLoc2[0]-toolLoc[0]), abs(toolLoc2[1]-toolLoc[1])))
+        # Switches state
         self.chosen = not self.chosen
 
 class sprayTool(Tool):
     """Spray tool in a circle"""
     def canvasHold(self):
+        # Chooses random pixels with randrange
         if key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
             for i in range(round(2*size)):
                 while True:
@@ -314,6 +323,16 @@ class sprayTool(Tool):
                         randrange(cm()[1]-size, cm()[1]+size))
                     if hypot(cm()[0]-x, cm()[1]-y) <= size:
                         layers[currentLayer].set_at((x,y), tuple(map(cc, rgb(hue/255, 0.5, 1))))
+                        break
+        elif key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
+            # Randomized colour
+            for i in range(round(6.18*size/3)):
+                while True:
+                    x, y = (randrange(cm()[0]-size, cm()[0]+size),
+                        randrange(cm()[1]-size, cm()[1]+size))
+                    if hypot(cm()[0]-x, cm()[1]-y) <= size:
+                        layers[currentLayer].set_at((x,y),
+                        (randrange(0, 256), randrange(0, 256), randrange(0, 256)))
                         break
         else:
             for i in range(round(6.18*size/3)):
@@ -329,6 +348,7 @@ class textTool(Tool):
     size = 10
     colour = (255, 0, 0)
     def canvasDown(self):
+        # Locks location, colour and size until next click
         global toolLoc
         self.size = size
         self.text = ""
@@ -338,8 +358,10 @@ class textTool(Tool):
 class stampTool(Tool):
     def canvasHold(self):
         global layers
+        # Gets stamps from stamps.py
         layers[currentLayer] = cover.copy()
-        layers[currentLayer].blit(transform.scale(stamps[currentStamp].convert_alpha(), (size*4, size*4)), (cm()[0] - size*2, cm()[1]-size*2))
+        layers[currentLayer].blit(transform.scale(stamps[currentStamp].convert_alpha(),
+        (size*4, size*4)), (cm()[0] - size*2, cm()[1]-size*2))
 
 class gradTool(Tool):
     """Fills an area bounded by different colours"""
@@ -350,7 +372,9 @@ class gradTool(Tool):
 
     def pixel(self, colour, x, y, pixarray):
         if key.get_pressed()[K_LCTRL] or key.get_pressed()[K_RCTRL]:
-            spots = [(x, y)]
+            # Vertical gradient
+            spots = set()
+            spots.add((x, y))
             while len(spots) > 0:
                 fx, fy = spots.pop()
                 if 0 <= fx < 1080 and 0 <= fy < 660:
@@ -359,29 +383,32 @@ class gradTool(Tool):
                         g = round(lColour[1] * (fy/660) + rColour[1] * ((660-fy)/660))
                         b = round(lColour[2] * (fy/660) + rColour[2] * ((660-fy)/660))
                         pixarray[fx][fy] = (r, g, b)
-                        spots.append((fx+1, fy))
-                        spots.append((fx-1, fy))
-                        spots.append((fx, fy+1))
-                        spots.append((fx, fy-1))
-
+                        spots.add((fx+1, fy))
+                        spots.add((fx-1, fy))
+                        spots.add((fx, fy+1))
+                        spots.add((fx, fy-1))
         elif key.get_pressed()[K_LALT] or key.get_pressed()[K_RALT]:
-            spots = [(x, y)]
+            # Radial gradient from mouse location
+            spots = set()
+            spots.add((x, y))
             while len(spots) > 0:
                 fx, fy = spots.pop()
                 if 0 <= fx < 1080 and 0 <= fy < 660:
                     if pixarray[fx][fy] == colour:
+                        # Distance formula from mouse
                         distance = hypot(fx-cm()[0], fy-cm()[1])
                         r = round(lColour[0] * (distance/1265) + rColour[0] * ((1265-distance)/1265))
                         g = round(lColour[1] * (distance/1265) + rColour[1] * ((1265-distance)/1265))
                         b = round(lColour[2] * (distance/1265) + rColour[2] * ((1265-distance)/1265))
                         pixarray[fx][fy] = (r, g, b)
-                        spots.append((fx+1, fy))
-                        spots.append((fx-1, fy))
-                        spots.append((fx, fy+1))
-                        spots.append((fx, fy-1))
-
+                        spots.add((fx+1, fy))
+                        spots.add((fx-1, fy))
+                        spots.add((fx, fy+1))
+                        spots.add((fx, fy-1))
         else:
-            spots = [(x, y)]
+            # Horizontal gradient
+            spots = set()
+            spots.add((x, y))
             while len(spots) > 0:
                 fx, fy = spots.pop()
                 if 0 <= fx < 1080 and 0 <= fy < 660:
@@ -390,10 +417,10 @@ class gradTool(Tool):
                         g = round(lColour[1] * (fx/1080) + rColour[1] * ((1080-fx)/1080))
                         b = round(lColour[2] * (fx/1080) + rColour[2] * ((1080-fx)/1080))
                         pixarray[fx][fy] = (r, g, b)
-                        spots.append((fx+1, fy))
-                        spots.append((fx-1, fy))
-                        spots.append((fx, fy+1))
-                        spots.append((fx, fy-1))
+                        spots.add((fx+1, fy))
+                        spots.add((fx-1, fy))
+                        spots.add((fx, fy+1))
+                        spots.add((fx, fy-1))
 
         del(spots)
 
@@ -404,18 +431,22 @@ def gaussianBlur():
         result = ndimage.filters.gaussian_filter(numpyarray, (4, 4, 0))
         layers[currentLayer] = surfarray.make_surface(result)
     else:
+        # Scale down, scale up
         layers[currentLayer] = transform.smoothscale(transform.smoothscale(layers[currentLayer], (270, 115)), (1080, 660))
 
 def pixelate():
+    # Scale down, scale up (nearest neighbour)
     layers[currentLayer] = transform.scale(transform.scale(layers[currentLayer], (108, 66)), (1080, 660))
 
 def sobel():
+    # Edge detect built into scipy
     if numsci:
         numpyarray = surfarray.array3d(layers[currentLayer])
         result = ndimage.filters.sobel(numpyarray)
         layers[currentLayer] = surfarray.make_surface(result)
 
 def saturate():
+    # Increases saturation to 1/1
     for x in range(1080):
         for y in range(660):
             pix = layers[currentLayer].get_at((x, y))
@@ -424,6 +455,7 @@ def saturate():
             layers[currentLayer].set_at((x, y), pix)
 
 def invert():
+    # Doesn't play well with different colour profiles
     #if numsci:
         #pixelarray = surfarray.pixels2d(layers[currentLayer])
         #pixelarray ^= 2**24 - 1
@@ -436,12 +468,14 @@ def flip():
     layers[currentLayer] = transform.flip(layers[currentLayer], False, True)
 
 def grayscale():
+    # Averages RGB channels, applies to all
     for x in range(0, 1080):
         for y in range(0, 660):
             pix = sum(layers[currentLayer].get_at((x, y))[:-1])//3
             layers[currentLayer].set_at((x, y), (pix, pix, pix))
 
 def tint():
+    # More accurate but SLOW
     # for x in range(0, 1080):
     #    for y in range(0, 660):
     #        pix = layers[currentLayer].get_at((x, y))
@@ -455,6 +489,7 @@ def tint():
     layers[currentLayer].blit(tintlayer, (0, 0))
 
 def noise():
+    # Random colour
     for x in range(0, 1080):
         for y in range(0, 660):
             layers[currentLayer].set_at((x, y),
@@ -476,9 +511,7 @@ def shrink():
     surf.blit(scaled, (270, 165))
     layers[currentLayer] = surf
 
-
-
-
+# Stores filters in a list for corresponding Rect collide access
 filterList = [gaussianBlur, pixelate, sobel, saturate,
 invert, flip, grayscale, tint,
 noise, fill, grow, shrink]
@@ -541,6 +574,7 @@ images = {
     "toolbar"  : image.load("resources/pstool.png")
 }
 
+# Filter rects for corresponding filter
 filterRects = [Rect(295, 839, 117, 90),
 Rect(295, 929, 117, 90),
 Rect(412, 839, 117, 90),
@@ -627,7 +661,7 @@ while running:
     hue = (hue + 1) % 255
 
     # Resets the screen
-    draw.rect(screen, (80, 80, 80), (41, 29, 200, 800))
+    draw.rect(screen, (80, 80, 80), (41, 29, 200, 800)) # Deletes tooltips
     screen.blit(images["title"], (0, 0))
     screen.blit(images["toolbar"], (0, 28))
 
@@ -683,6 +717,7 @@ while running:
                     displayInfo = True
 
                 elif Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects) != -1:
+                    # Finds corresponding filter to the collision rect
                     lastclick = "filters"
                     tile = Rect(tm()[0], tm()[1], 1, 1).collidelist(filterRects)
                     filterList[tile]()
@@ -705,7 +740,7 @@ while running:
 
                 elif rects["hue"].collidepoint(tm()):
                     lastclick = "hue"
-            
+
                 elif rects["save"].collidepoint(tm()):
                     # Opens tk dialog to pick an image to load
                     filename = filedialog.askopenfilename()
@@ -733,7 +768,7 @@ while running:
                     tools[currentTool].canvasUp()
 
         elif ev.type == KEYDOWN:
-            if 256 <= ev.key <= 265:
+            if 256 <= ev.key <= 265: #Numpad keys
                 currentStamp = ev.key
 
             if currentTool == "text":
@@ -782,7 +817,7 @@ while running:
                     elif ev.key == K_d:
                         lColour = (0, 0, 0)
                         rColour = (254, 254, 254)
-                    
+
 
     if mouse.get_pressed()[0] or mouse.get_pressed()[2]:
         # canvas check
@@ -793,6 +828,7 @@ while running:
 
         elif rects["hue"].collidepoint(tm()) and lastclick == "hue":
             screen.blit(images["colorbox"], (1004, 760))
+            # Adjusts for active colour
             draw.rect(screen, lHue if mouse.get_pressed()[0] else rHue, rects["palette"])
             screen.blit(images["palette"], rects["palette"])
             if mouse.get_pressed()[0]:
@@ -817,12 +853,15 @@ while running:
                 rColour = screen.get_at(rLoc)
                 draw.circle(screen, (0, 0, 0), rLoc, 5, 1)
 
+    # Text blitting
     if currentTool == "text":
         layers[currentLayer].blit(cover, (0, 0))
-        layers[currentLayer].blit(font.SysFont("Segoe UI", tools["text"].size).render(tools["text"].text, True, tools["text"].colour), toolLoc)
+        layers[currentLayer].blit(font.SysFont("Segoe UI",
+        tools["text"].size).render(tools["text"].text, True, tools["text"].colour), toolLoc)
     else:
         tools["text"].text = ""
 
+    #Current Colours
     draw.rect(screen, (0, 0, 0), (10, 726, 28, 28))
     draw.rect(screen, (255, 255, 255), (11, 727, 26, 26))
     draw.rect(screen, rColour, (12, 728, 24, 24))
@@ -834,6 +873,7 @@ while running:
 
     if displayInfo:
         if timer1 == 0:
+            # Text blitting
             infobox = images["info"].copy()
             infobox.blit(segoeui.render(str(lColour[0]), True, white), (70, 35))
             infobox.blit(segoeui.render(str(lColour[1]), True, white), (70, 50))
@@ -850,18 +890,16 @@ while running:
             infobox.blit(segoeui.render(str(size), True, white), (180, 125))
             infobox.blit(segoeui.render(str(size), True, white), (180, 140))
 
+            # Occasionally crashes if the application has not been opened before, no fix
             infobox.blit(segoeui.render("Current FPS: " + str(1000//fpsTrack.get_time()), True, white), (32, 170))
         screen.blit(infobox, (39, 805))
     else:
         screen.blit(images["properties"], (39, 805))
 
-
-
     if rects["exit"].collidepoint(tm()):
         screen.blit(images["hExit"], rects["exit"])
     else:
         screen.blit(images["Exit"], rects["exit"])
-
     if rects["save"].collidepoint(tm()):
         screen.blit(images["hFile"], rects["save"])
     else:
@@ -869,33 +907,29 @@ while running:
 
 
     layerbox = images["layerbox"].copy()
-
     for i in range(len(layers)):
+        # Blits each layer in miniature, and highlights the active one
         draw.rect(layerbox, (80, 80, 80), (0, 90+50*(len(layers)-i-1), 100, 50))
         layerbox.blit(transform.scale(layers[i], (100, 51)), (0, 90+(50*(len(layers)-i-1))))
 
     draw.rect(layerbox, (255, 0, 0), (0, 90+50*(len(layers)-currentLayer-1), 99, 50), 2)
     screen.blit(layerbox, (1180, 100))
 
-
-
+    # Final blit of the canvas: takes a long time because of transparency
     for i in range(len(layers)):
         if i == 0:
             layers[0].set_colorkey(None)
         else:
             layers[i].set_colorkey((255, 255, 255))
-
         screen.blit(layers[i], (100, 100))
 
-
-
+    # Blits icons
     for keyz in tools:
         if tools[keyz].rect.collidepoint(tm()):
             if not mouse.get_pressed()[0]:
                 screen.blit(tools[keyz].images[1], tools[keyz].loc)
         else:
             screen.blit(tools[keyz].images[0], tools[keyz].loc)
-
     screen.blit(tools[currentTool].images[2], tools[currentTool].loc)
 
     fpsTrack.tick()
