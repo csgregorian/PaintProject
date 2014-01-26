@@ -42,7 +42,7 @@ __author__ = "Christopher Gregorian"
 __copyright__ = "Copyright 2013-2014, ICS-3U"
 __email__ = "csgregorian@gmail.com"
 __website__ = "github.com/csgregorian"
-__status__  = "Development"
+__status__  = "Production"
 
 
 ## .......~Global Function Definitions~....... ##
