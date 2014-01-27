@@ -219,9 +219,9 @@ class dropperTool(Tool):
         global rColour
         global layers
         if mouse.get_pressed()[0]:
-            lColour = layers[currentLayer].get_at(tm())
+            lColour = layers[currentLayer].get_at(cm())
         else:
-            rColour = layers[currentLayer].get_at(tm())
+            rColour = layers[currentLayer].get_at(cm())
         layers[currentLayer] = cover.copy()
 
 class fillTool(Tool):
