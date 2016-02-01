@@ -891,7 +891,7 @@ while running:
             infobox.blit(segoeui.render(str(size), True, white), (180, 140))
 
             # Occasionally crashes if the application has not been opened before, no fix
-            infobox.blit(segoeui.render("Current FPS: " + str(1000//fpsTrack.get_time()), True, white), (32, 170))
+            infobox.blit(segoeui.render("Current FPS: " + str(1000//(fpsTrack.get_time()+1)), True, white), (32, 170))
         screen.blit(infobox, (39, 805))
     else:
         screen.blit(images["properties"], (39, 805))
