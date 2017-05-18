@@ -1,7 +1,6 @@
 Paint_Project
 =============
 
-# Pyshop CS7
 ## A photoshop clone written in Python 3.
 Includes tools, colour selection, colorkey layers, file loading and saving, program information, and filters.
 Runs using the pygame (http://pygame.org) graphics library.
